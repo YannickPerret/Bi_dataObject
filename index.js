@@ -20,7 +20,7 @@ fastify.get('/', function handler (request, reply) {
     reply.send({ hello: 'hello world hacker !' })
 })
 
-fastify.post('/upload', { preHandler: upload.single('image') }, function (request, reply) {
+fastify.post('/upload', { preHandler: upload.single('image') }, async (request, reply) => {
     const file = request.file;
 
     if (!file) {
@@ -28,18 +28,17 @@ fastify.post('/upload', { preHandler: upload.single('image') }, function (reques
         return;
     }
 
-    dataObject.doesBucketExist().then(() => {
-        const fileName = file.originalname;
-        dataObject.uploadObject(file.path, 'images/' + fileName)
-            .then((bucketUrl) => {
-                console.log(bucketUrl)
-                fs.unlink(file.path, (err) => {
-                    if (err) {
-                        console.error(err)
-                        return
-                    }
-                });
-                reply.send({ message: 'Image téléchargée avec succès.', url: bucketUrl });
+    console.log(file);
+
+    await dataObject.doesBucketExist().then(async () => {
+        const fileContent = fs.readFileSync(file.path);
+
+        await dataObject.uploadObject(fileContent, 'images/' + file.originalname)
+            .then(async (bucketUrl) => {
+                fs.unlinkSync(file.path)
+                await dataObject.getImage(bucketUrl.Key).then((url) => {
+                    reply.send({ message: 'Image téléchargée avec succès.', url: url });
+                })
             })
             .catch((err) => {
                 reply.status(500).send({ error: err.message });
