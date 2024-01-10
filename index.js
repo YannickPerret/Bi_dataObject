@@ -5,6 +5,8 @@ const cors = require('@fastify/cors')
 const multer = require('fastify-multer');
 const upload = multer({ dest: 'uploads/' });
 const fs = require('fs');
+const path = require('path');
+
 
 const dataObject = new AwsDataObjectImpl(process.env.BUCKET_NAME, process.env.REGION, process.env.ACCESS_KEY_ID, process.env.SECRET_ACCESS_KEY);
 
@@ -31,6 +33,17 @@ fastify.post('/upload', { preHandler: upload.single('image') }, async (request, 
     await dataObject.doesBucketExist().then(async () => {
         const fileContent = fs.readFileSync(file.path);
 
+        // Obtenir l'extension du fichier
+        const ext = path.extname(file.originalname).toLowerCase();
+        const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
+
+        // Vérifier si l'extension du fichier est dans la liste des extensions autorisées
+        if (!allowedExtensions.includes(ext)) {
+            fs.unlinkSync(file.path); // Supprimer le fichier téléchargé
+            reply.status(400).send({ error: 'Le fichier téléchargé n\'est pas une image.' });
+            return;
+        }
+
         await dataObject.uploadObject(fileContent, 'images/' + file.originalname)
             .then(async (bucketUrl) => {
                 fs.unlinkSync(file.path)
@@ -45,6 +58,7 @@ fastify.post('/upload', { preHandler: upload.single('image') }, async (request, 
         reply.status(500).send({ error: err.message });
     });
 });
+
 
 // Run the server!
 fastify.listen({ port: process.env.API_PORT, host: '127.0.0.1' }, (err, address) => {
