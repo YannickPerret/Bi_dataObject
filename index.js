@@ -16,7 +16,7 @@ fastify.register(cors, {
 
 fastify.register(multer.contentParser);
 
-fastify.get('/', function handler (request, reply) {
+fastify.get('/', function handler(request, reply) {
     reply.send({ hello: 'hello world hacker !' })
 })
 
@@ -27,8 +27,6 @@ fastify.post('/upload', { preHandler: upload.single('image') }, async (request, 
         reply.status(400).send({ error: 'Aucun fichier téléchargé.' });
         return;
     }
-
-    console.log(file);
 
     await dataObject.doesBucketExist().then(async () => {
         const fileContent = fs.readFileSync(file.path);
@@ -48,10 +46,8 @@ fastify.post('/upload', { preHandler: upload.single('image') }, async (request, 
     });
 });
 
-
-
-  // Run the server!
-fastify.listen({port: process.env.API_PORT, host: '127.0.0.1'}, (err, address) => {
+// Run the server!
+fastify.listen({ port: process.env.API_PORT, host: '127.0.0.1' }, (err, address) => {
     if (err) throw err
     console.log(`server listening on http://localhost:${fastify.server.address().port}`)
 })
