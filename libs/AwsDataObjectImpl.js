@@ -1,4 +1,5 @@
 const AWS = require('aws-sdk');
+const fs = require('fs');
 
 function encode(data) {
   let buf = Buffer.from(data);
@@ -34,29 +35,29 @@ class AwsDataObjectImpl {
     }
   }
 
-  static doesObjectExist(bucketName, key) {
-    const s3 = new AWS.S3();
-    return s3.headObject({ Bucket: bucketName, Key: key }).promise();
-  }
-
   async createBucket() {
     const params = { Bucket: this.bucketName, ACL: 'public-read' };
     try {
       await this.s3.createBucket(params).promise();
-      console.log(`Bucket created successfully. ${this.bucketName}`);
     } catch (err) {
-      console.error("Error creating bucket:", err);
       throw err;
     }
   }
 
-  async doesBucketExist(bucketName = this.bucketName) {
+  async doesBucketExist(bucketName) {
     try {
       await this.s3.headBucket({ Bucket: bucketName }).promise();
-      console.log(`Bucket exists. ${bucketName}`);
       return true;
     } catch (err) {
-      console.error("Error checking bucket:", err);
+      return false;
+    }
+  }
+
+  async doesObjectExist(key) {
+    try {
+      await this.s3.headObject({ Bucket: this.bucketName, Key: key }).promise();
+      return true;
+    } catch (err) {
       return false;
     }
   }
@@ -67,7 +68,7 @@ class AwsDataObjectImpl {
       Bucket: this.bucketName,
       Key: fileName,
       Body: fileContent,
-      ContentType: 'image/jpeg' // Assurez-vous que cela correspond au type de fichier réel
+      ContentType: 'image/jpeg'
     };
 
     try {
@@ -80,7 +81,8 @@ class AwsDataObjectImpl {
     }
   }
 
-  async downloadObject(key) {
+  // download object from bucket to localPath
+  async downloadObject(key, localPath) {
     const params = {
       Bucket: this.bucketName,
       Key: key
@@ -88,25 +90,41 @@ class AwsDataObjectImpl {
 
     try {
       const data = await this.s3.getObject(params).promise();
-      return "data:image/jpeg;base64," + encode(data.Body)
+      console.log(data.Body.toString())
+      fs.writeFileSync(localPath, data.Body.toString());
+      console.log("File downloaded successfully");
     } catch (err) {
       console.error("Error downloading file:", err);
       throw err;
     }
   }
 
-  async getImage(key, expiration = 90) {
+  async publish(key) {
     const params = {
       Bucket: this.bucketName,
       Key: key,
-      Expires: expiration
+      Expires: 60 * 60 * 24 * 7 // 7 days
     };
 
     try {
-      const data = await this.s3.getSignedUrl("getObject", params)
-      return data;
+      const url = await this.s3.getSignedUrlPromise('getObject', params);
+      return url;
     } catch (err) {
-      console.error("Error get image :", err);
+      console.error("Error publishing file:", err);
+      throw err;
+    }
+  }
+
+  async deleteObject(key) {
+    const params = {
+      Bucket: this.bucketName,
+      Key: key
+    };
+
+    try {
+      await this.s3.deleteObject(params).promise();
+    } catch (err) {
+      console.error("Error deleting file:", err);
       throw err;
     }
   }
