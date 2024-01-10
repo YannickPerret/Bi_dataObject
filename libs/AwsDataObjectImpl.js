@@ -96,11 +96,11 @@ class AwsDataObjectImpl {
     }
   }
 
-  async getImage(key) {
+  async getImage(key, expiration = 90) {
     const params = {
       Bucket: this.bucketName,
       Key: key,
-      Expires: 60 * 5
+      Expires: expiration
     };
 
     try {
