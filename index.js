@@ -46,7 +46,7 @@ fastify.post('/upload', { preHandler: upload.single('image') }, async (request, 
 
         // Vérifier si l'extension du fichier est dans la liste des extensions autorisées
         if (!allowedExtensions.includes(ext)) {
-            fs.unlinkSync(file.path); // Supprimer le fichier téléchargé
+            fs.unlinkSync(file.path);
             reply.status(400).send({ error: 'Le fichier téléchargé n\'est pas une image.' });
             return;
         }
@@ -77,7 +77,6 @@ fastify.post('/upload', { preHandler: upload.single('image') }, async (request, 
     });
 })
 
-// Run the server!
 fastify.listen({ port: process.env.AWS_API_PORT, host: '127.0.0.1' }, (err, address) => {
     if (err) {
         fastify.log.error(err)
