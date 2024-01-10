@@ -1,12 +1,6 @@
 const AWS = require('aws-sdk');
 const fs = require('fs');
 
-function encode(data) {
-  let buf = Buffer.from(data);
-  let base64 = buf.toString("base64");
-  return base64;
-}
-
 class AwsDataObjectImpl {
   constructor(bucketName, region, accessKeyId, secretAccessKey) {
     this.bucketName = bucketName;
@@ -73,15 +67,12 @@ class AwsDataObjectImpl {
 
     try {
       const data = await this.s3.upload(params).promise();
-      console.log("File uploaded successfully");
       return data;
     } catch (err) {
-      console.error("Error uploading file:", err);
       throw err;
     }
   }
 
-  // download object from bucket to localPath
   async downloadObject(key, localPath) {
     const params = {
       Bucket: this.bucketName,
@@ -90,11 +81,8 @@ class AwsDataObjectImpl {
 
     try {
       const data = await this.s3.getObject(params).promise();
-      console.log(data.Body.toString())
-      fs.writeFileSync(localPath, data.Body.toString());
-      console.log("File downloaded successfully");
+      fs.writeFileSync(localPath, data.Body);
     } catch (err) {
-      console.error("Error downloading file:", err);
       throw err;
     }
   }
@@ -107,10 +95,15 @@ class AwsDataObjectImpl {
     };
 
     try {
+      // Vérifier d'abord si l'objet existe dans le bucket
+      const objectExists = await this.doesObjectExist(key);
+      if (!objectExists) {
+        throw new Error('NoSuchKey: The specified key does not exist.');
+      }
+
       const url = await this.s3.getSignedUrlPromise('getObject', params);
       return url;
     } catch (err) {
-      console.error("Error publishing file:", err);
       throw err;
     }
   }
@@ -124,7 +117,6 @@ class AwsDataObjectImpl {
     try {
       await this.s3.deleteObject(params).promise();
     } catch (err) {
-      console.error("Error deleting file:", err);
       throw err;
     }
   }
