@@ -61,7 +61,7 @@ test('Download_ObjectAndLocalPathAvailable_ObjectDownloaded', async () => {
 
 
 test('Download_ObjectMissing_ThrowException', async () => {
-  const localFile = "./images/validfd.jpg";
+  const localFile = path.join(__dirname, '/image/testss.jpg');
   const objectUri = "test.jpg";
 
   expect(await fs.existsSync(localFile)).toBe(false);
@@ -73,27 +73,32 @@ test('Download_ObjectMissing_ThrowException', async () => {
 
 
 test('Publish_ObjectExists_PublicUrlCreated', async () => {
-  const localFile = "./images/valid.jpg";
+  const localFile = path.join(__dirname, '/images/valid.jpg');
   const objectUri = "test.jpg";
-  const destinationFolder = "./download";
+  const destinationFolder = path.join(__dirname, '/download');
+  const destinationFile = path.join(destinationFolder, 'test.jpg');
+
   const objectKey = await AWSBucket.uploadObject(localFile, objectUri);
 
   expect(await AWSBucket.doesObjectExist(objectKey.Key)).toBe(true);
-  expect(fs.existsSync(destinationFolder)).toBe(true);
 
   const presignedUrl = await AWSBucket.publish(objectUri);
 
-  //download file via https
-  const file = fs.createWriteStream(destinationFolder + "/test.jpg");
+  // Download file via https
+  const file = fs.createWriteStream(destinationFile);
   const request = https.get(presignedUrl, function (response) {
     response.pipe(file);
     file.on('finish', function () {
-      file.close();
+      file.close(() => {
+        expect(fs.existsSync(destinationFile)).toBe(true);
+      });
     });
+  }).on('error', function (err) {
+    fs.unlinkSync(destinationFile);
+    throw err;
   });
-
-  expect(fs.existsSync(destinationFolder + "/test.jpg")).toBe(true);
 });
+
 
 test('Publish_ObjectMissing_ThrowException', async () => {
   const objectUri = "notvalidd.jpg";
