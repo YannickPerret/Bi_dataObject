@@ -120,3 +120,26 @@ test('Remove_ObjectPresentNoFolder_ObjectRemoved', async () => {
 
   expect(await AWSBucket.doesObjectExist(objectKey.Key)).toBe(false);
 });
+
+
+test('Remove_ObjectAndFolderPresent_ObjectRemoved', async () => {
+  const localFile = path.join(__dirname, '/images/valid.jpg');
+  const objectUri = "test.jpg";
+  const objectUriWithSubFolder = "folder1/test.jpg";
+
+  // Upload both files
+  const objectKey = await AWSBucket.uploadObject(localFile, objectUri);
+  const objectKeyWithSubFolder = await AWSBucket.uploadObject(localFile, objectUriWithSubFolder);
+
+  // Verify both files exist
+  expect(await AWSBucket.doesObjectExist(objectUri)).toBe(true);
+  expect(await AWSBucket.doesObjectExist(objectUriWithSubFolder)).toBe(true);
+
+  // Delete both files
+  await AWSBucket.deleteObject(objectUri);
+  await AWSBucket.deleteObject(objectUriWithSubFolder);
+
+  // Verify both files are deleted
+  expect(await AWSBucket.doesObjectExist(objectUri)).toBe(false);
+  expect(await AWSBucket.doesObjectExist(objectUriWithSubFolder)).toBe(false);
+});
