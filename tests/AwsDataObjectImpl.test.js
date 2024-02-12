@@ -76,6 +76,11 @@ test('Publish_ObjectExists_PublicUrlCreated', async () => {
   const localFile = path.join(__dirname, '/images/valid.jpg');
   const objectUri = "test.jpg";
   const destinationFolder = path.join(__dirname, '/download');
+
+  if (!fs.existsSync(destinationFolder)) {
+    fs.mkdirSync(destinationFolder, { recursive: true });
+  }
+
   const destinationFile = path.join(destinationFolder, 'test.jpg');
 
   const objectKey = await AWSBucket.uploadObject(localFile, objectUri);
