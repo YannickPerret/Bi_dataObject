@@ -8,7 +8,7 @@ const AWSBucket = new AwsDataObjectImpl(process.env.BUCKET_NAME, process.env.REG
 
 
 //faire après
-beforeEach(async () => {
+afterEach(async () => {
   // delete object test.jpg 
   await AWSBucket.deleteObject("test.jpg");
 });
