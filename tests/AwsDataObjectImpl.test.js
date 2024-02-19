@@ -6,6 +6,8 @@ const path = require('path');
 
 const AWSBucket = new AwsDataObjectImpl(process.env.BUCKET_NAME, process.env.REGION, process.env.ACCESS_KEY_ID, process.env.SECRET_ACCESS_KEY);
 
+
+//faire après
 beforeEach(async () => {
   // delete object test.jpg 
   await AWSBucket.deleteObject("test.jpg");
@@ -48,7 +50,7 @@ test('Download_ObjectAndLocalPathAvailable_ObjectDownloaded', async () => {
   const localFile = "./images/valid.jpg";
   const objectUri = "test.jpg";
 
-  const localDist = path.join(__dirname, '/download/test.jpg"');
+  const localDist = path.join(__dirname, '/download/test.jpg');
   const objectKey = await AWSBucket.uploadObject(localFile, objectUri);
 
   expect(await AWSBucket.doesObjectExist(objectKey.Key)).toBe(true);
