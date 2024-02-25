@@ -1,5 +1,15 @@
 const AWS = require('aws-sdk');
 const fs = require('fs');
+const IAwsDataObject = require('./IAwsDataObject');
+const { ObjectNotFoundException } = require('./exceptions/AwsDataObjectImplException');
+
+
+/**
+ * Implement of IAwsDataObject interface using AWS SDK.
+ * @class
+ * @implements {IAwsDataObject}
+ */
+
 
 class AwsDataObjectImpl {
   constructor(bucketName, region, accessKeyId, secretAccessKey) {
@@ -48,6 +58,9 @@ class AwsDataObjectImpl {
   }
 
   async doesObjectExist(key) {
+    if (typeof key !== 'string') {
+      throw new TypeError('key must be a string');
+    }
     try {
       await this.s3.headObject({ Bucket: this.bucketName, Key: key }).promise();
       return true;
@@ -57,7 +70,7 @@ class AwsDataObjectImpl {
   }
 
   async uploadObject(fileContent, fileName) {
-    // Assurez-vous que fileContent est un Buffer ou un flux binaire
+
     const params = {
       Bucket: this.bucketName,
       Key: fileName,
@@ -74,6 +87,12 @@ class AwsDataObjectImpl {
   }
 
   async downloadObject(key, localPath) {
+    if (typeof key !== 'string') {
+      throw new TypeError('key must be a string');
+    }
+    if (localPath && typeof localPath !== 'string') {
+      throw new TypeError('localPath must be a string');
+    }
     const params = {
       Bucket: this.bucketName,
       Key: key
@@ -83,20 +102,22 @@ class AwsDataObjectImpl {
       const data = await this.s3.getObject(params).promise();
       fs.writeFileSync(localPath, data.Body);
     } catch (err) {
-      throw err;
+      throw new ObjectNotFoundException(err.message);
     }
   }
 
-  async publish(key) {
+  async publish(remoteFullPath, expirationTime = 90) {
+    if (remoteFullPath && typeof remoteFullPath !== 'string') {
+      throw new TypeError('key must be a string');
+    }
     const params = {
       Bucket: this.bucketName,
-      Key: key,
-      Expires: 60 * 60 * 24 * 7 // 7 days
+      Key: remoteFullPath,
+      Expires: expirationTime
     };
 
     try {
-      // Vérifier d'abord si l'objet existe dans le bucket
-      const objectExists = await this.doesObjectExist(key);
+      const objectExists = await this.doesObjectExist(remoteFullPath);
       if (!objectExists) {
         throw new Error('NoSuchKey: The specified key does not exist.');
       }
@@ -104,18 +125,35 @@ class AwsDataObjectImpl {
       const url = await this.s3.getSignedUrlPromise('getObject', params);
       return url;
     } catch (err) {
-      throw err;
+      throw new ObjectNotFoundException(err.message);
     }
   }
 
-  async deleteObject(key) {
-    const params = {
+  async remove(remoteFullPath) {
+    if (typeof remoteFullPath !== 'string') {
+      throw new TypeError('remoteFullPath must be a string');
+    }
+    const listParams = {
       Bucket: this.bucketName,
-      Key: key
+      Prefix: remoteFullPath
     };
 
     try {
-      await this.s3.deleteObject(params).promise();
+      const listedObjects = await this.s3.listObjectsV2(listParams).promise();
+
+      if (listedObjects.Contents.length === 0) return;
+
+      const deleteParams = {
+        Bucket: this.bucketName,
+        Delete: {
+          Objects: listedObjects.Contents.map(({ Key }) => ({ Key }))
+        }
+      };
+
+      await this.s3.deleteObjects(deleteParams).promise();
+
+      if (listedObjects.IsTruncated) await this.deleteObjectsRecursive(remoteFullPath)
+
     } catch (err) {
       throw err;
     }
