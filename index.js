@@ -39,22 +39,17 @@ fastify.post('/upload', { preHandler: upload.single('image') }, async (request, 
     await dataObject.doesBucketExist().then(async () => {
 
         const fileContent = fs.readFileSync(file.path);
-
-        // Obtenir l'extension du fichier
         const ext = path.extname(file.originalname).toLowerCase();
         const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
 
-        // Vérifier si l'extension du fichier est dans la liste des extensions autorisées
         if (!allowedExtensions.includes(ext)) {
             fs.unlinkSync(file.path);
             reply.status(400).send({ error: 'Le fichier téléchargé n\'est pas une image.' });
             return;
         }
 
-        // Vérifier si le fichier est déjà uploadé dans le bucket
         await dataObject.doesObjectExist('images/' + file.originalname).then(async (exist) => {
             if (exist) {
-                //récupérer l'url de l'image
                 await dataObject.publish('images/' + file.originalname).then((url) => {
                     reply.send({ message: 'Image téléchargée avec succès.', url: url });
                 })
@@ -74,6 +69,8 @@ fastify.post('/upload', { preHandler: upload.single('image') }, async (request, 
         }).catch((err) => {
             reply.status(500).send({ error: err.message });
         });
+    }).catch((err) => {
+        reply.status(500).send({ error: err.message });
     });
 })
 

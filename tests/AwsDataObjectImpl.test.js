@@ -3,12 +3,13 @@ const fs = require('fs');
 require("dotenv").config();
 const https = require('https');
 const path = require('path');
+const { ObjectNotFoundException } = require('../libs/exceptions/AwsDataObjectImplException');
 
 const AWSBucket = new AwsDataObjectImpl(process.env.BUCKET_NAME, process.env.REGION, process.env.ACCESS_KEY_ID, process.env.SECRET_ACCESS_KEY);
 
-beforeEach(async () => {
+afterEach(async () => {
   // delete object test.jpg 
-  await AWSBucket.deleteObject("test.jpg");
+  await AWSBucket.remove("test.jpg");
 });
 
 
@@ -48,7 +49,7 @@ test('Download_ObjectAndLocalPathAvailable_ObjectDownloaded', async () => {
   const localFile = "./images/valid.jpg";
   const objectUri = "test.jpg";
 
-  const localDist = path.join(__dirname, '/download/test.jpg"');
+  const localDist = path.join(__dirname, '/download/test.jpg');
   const objectKey = await AWSBucket.uploadObject(localFile, objectUri);
 
   expect(await AWSBucket.doesObjectExist(objectKey.Key)).toBe(true);
@@ -68,7 +69,7 @@ test('Download_ObjectMissing_ThrowException', async () => {
 
   expect(await AWSBucket.doesObjectExist(objectUri)).toBe(false);
 
-  await expect(AWSBucket.downloadObject(objectUri)).rejects.toThrow("The specified key does not exist.");
+  await expect(AWSBucket.downloadObject(objectUri)).rejects.toThrow(ObjectNotFoundException);
 });
 
 
@@ -110,7 +111,7 @@ test('Publish_ObjectMissing_ThrowException', async () => {
   const objectKey = await AWSBucket.doesObjectExist(objectUri)
   expect(objectKey).toBe(false);
 
-  await expect(AWSBucket.publish(objectKey.Key)).rejects.toThrow("The specified key does not exist.");
+  await expect(AWSBucket.publish(objectKey.Key)).rejects.toThrow(ObjectNotFoundException);
 
 });
 
@@ -121,7 +122,7 @@ test('Remove_ObjectPresentNoFolder_ObjectRemoved', async () => {
 
   expect(await AWSBucket.doesObjectExist(objectKey.Key)).toBe(true);
 
-  await AWSBucket.deleteObject(objectUri);
+  await AWSBucket.remove(objectUri);
 
   expect(await AWSBucket.doesObjectExist(objectKey.Key)).toBe(false);
 });
@@ -141,8 +142,8 @@ test('Remove_ObjectAndFolderPresent_ObjectRemoved', async () => {
   expect(await AWSBucket.doesObjectExist(objectUriWithSubFolder)).toBe(true);
 
   // Delete both files
-  await AWSBucket.deleteObject(objectUri);
-  await AWSBucket.deleteObject(objectUriWithSubFolder);
+  await AWSBucket.remove(objectUri);
+  await AWSBucket.remove(objectUriWithSubFolder);
 
   // Verify both files are deleted
   expect(await AWSBucket.doesObjectExist(objectUri)).toBe(false);
