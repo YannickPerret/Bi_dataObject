@@ -28,7 +28,7 @@ fastify.get('/', function handler(request, reply) {
     reply.send({ hello: 'hello world hacker !' })
 })
 
-fastify.post('/upload', { preHandler: upload.single('image') }, async (request, reply) => {
+fastify.post('/api/upload', { preHandler: upload.single('image') }, async (request, reply) => {
     const file = request.file;
 
     if (!file) {
@@ -74,10 +74,10 @@ fastify.post('/upload', { preHandler: upload.single('image') }, async (request, 
     });
 })
 
-fastify.listen({ port: process.env.AWS_API_PORT, host: '127.0.0.1' }, (err, address) => {
+fastify.listen({ port: process.env.AWS_API_PORT, host: '::' }, (err, address) => {
     if (err) {
         fastify.log.error(err)
         process.exit(1)
     }
-    console.log(`\x1b[33m[DataObject]\x1b[0m server listening on http://localhost:${fastify.server.address().port}`)
+    console.log(`\x1b[33m[DataObject]\x1b[0m server listening on http://${fastify.server.address().address}:${fastify.server.address().port}`)
 })
