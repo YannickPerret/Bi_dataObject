@@ -28,7 +28,7 @@ fastify.get('/', function handler(request, reply) {
     reply.send({ hello: 'hello world hacker !' })
 })
 
-fastify.post('/upload', { preHandler: upload.single('image') }, async (request, reply) => {
+fastify.post('/api/upload', { preHandler: upload.single('image') }, async (request, reply) => {
     const file = request.file;
 
     if (!file) {
@@ -39,22 +39,17 @@ fastify.post('/upload', { preHandler: upload.single('image') }, async (request, 
     await dataObject.doesBucketExist().then(async () => {
 
         const fileContent = fs.readFileSync(file.path);
-
-        // Obtenir l'extension du fichier
         const ext = path.extname(file.originalname).toLowerCase();
         const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'];
 
-        // Vérifier si l'extension du fichier est dans la liste des extensions autorisées
         if (!allowedExtensions.includes(ext)) {
             fs.unlinkSync(file.path);
             reply.status(400).send({ error: 'Le fichier téléchargé n\'est pas une image.' });
             return;
         }
 
-        // Vérifier si le fichier est déjà uploadé dans le bucket
         await dataObject.doesObjectExist('images/' + file.originalname).then(async (exist) => {
             if (exist) {
-                //récupérer l'url de l'image
                 await dataObject.publish('images/' + file.originalname).then((url) => {
                     reply.send({ message: 'Image téléchargée avec succès.', url: url });
                 })
@@ -74,13 +69,15 @@ fastify.post('/upload', { preHandler: upload.single('image') }, async (request, 
         }).catch((err) => {
             reply.status(500).send({ error: err.message });
         });
+    }).catch((err) => {
+        reply.status(500).send({ error: err.message });
     });
 })
 
-fastify.listen({ port: process.env.AWS_API_PORT, host: '127.0.0.1' }, (err, address) => {
+fastify.listen({ port: process.env.AWS_API_PORT, host: '::' }, (err, address) => {
     if (err) {
         fastify.log.error(err)
         process.exit(1)
     }
-    console.log(`\x1b[33m[DataObject]\x1b[0m server listening on http://localhost:${fastify.server.address().port}`)
+    console.log(`\x1b[33m[DataObject]\x1b[0m server listening on http://${fastify.server.address().address}:${fastify.server.address().port}`)
 })
