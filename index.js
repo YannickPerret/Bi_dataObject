@@ -74,7 +74,7 @@ fastify.post('/api/upload', { preHandler: upload.single('image') }, async (reque
     });
 })
 
-fastify.listen({ port: process.env.AWS_API_PORT, host: '::' }, (err, address) => {
+fastify.listen({ port: process.env.AWS_API_PORT, host: process.env.DATAOBJECT_BASE_URL }, (err, address) => {
     if (err) {
         fastify.log.error(err)
         process.exit(1)

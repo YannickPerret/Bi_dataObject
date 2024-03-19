@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --watchAll --verbose",
     "dev": "node index.js"
   },
   "keywords": [],
@@ -18,5 +18,8 @@
     "fastify-multer": "^2.0.3",
     "file-type": "^19.0.0",
     "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }
